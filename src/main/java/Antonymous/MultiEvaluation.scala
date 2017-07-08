@@ -61,11 +61,12 @@ object MultiEvaluation {
     println("Imbalanced Scenario with UnderSampling Sem EVAL ---------------------------------------------------")
     callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithUndersamplingSemEval(semEvalData, dataSplitSemEval(1), htf_2, sc))
 
-
     println("Balanced Synonymous with Google     ---------------------------------------------------")
-    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplitSemEval(0).union(syntheticGenerationFunctions.similarGeneratorSemEval(semEvalData, htf_2, word2vecFromGoogleMapper)), dataSplitSemEval(1)))
+    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplitSemEval(0)
+      .union(syntheticGenerationFunctions.similarGeneratorSemEval(semEvalData, htf_2, word2vecFromGoogleMapper)), dataSplitSemEval(1)))
     println("Balanced Synonymous with Dataset    ---------------------------------------------------")
-    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplitSemEval(0).union(syntheticGenerationFunctions.similarGeneratorSemEval(semEvalData, htf_2, word2vecFromDatasetMapper)), dataSplitSemEval(1)))
+    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplitSemEval(0)
+      .union(syntheticGenerationFunctions.similarGeneratorSemEval(semEvalData, htf_2, word2vecFromDatasetMapper)), dataSplitSemEval(1)))
 
     println("Imbalanced Synonymous with Google   ---------------------------------------------------")
     callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithSimilarsSemEval(semEvalData, dataSplitSemEval(1), htf_2, word2vecFromGoogleMapper))
@@ -74,35 +75,49 @@ object MultiEvaluation {
 
   }
 
-  def distant_supervision_evaluation(syntheticGenerationFunctions: SyntheticGenerationFunctions, dataSplit: Array[RDD[LabeledPoint]], data: RDD[String], htf: HashingTF, sc: SparkContext) : Unit = {
-//    println("Simple Balanced Scenario            ---------------------------------------------------")
-//    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplit(0), dataSplit(1)))
-//    println("Balanced Scenario with Antonymous   ---------------------------------------------------")
-//    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplit(0).union(syntheticGenerationFunctions.antonymsGenerator(data, htf, wordnetMapper)), dataSplit(1)))
-//
-//    println("Simple Imbalanced Scenario          ---------------------------------------------------")
-//    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10fold(dataSplit(0), dataSplit(1)))
+  def distant_supervision_evaluation(syntheticGenerationFunctions: SyntheticGenerationFunctions, dataSplit: Array[RDD[LabeledPoint]],
+                                     data: RDD[String], htf: HashingTF, sc: SparkContext, antonymous_generation_case:Int) : Unit = {
 
-    println("Imbalanced Scenario with Antonymous ---------------------------------------------------")
-    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithAntonyms(data, dataSplit(1), htf, wordnetMapper))
-//
-//    println("Imbalanced Scenario with OverSampling ---------------------------------------------------")
-//    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithOversampling(data, dataSplit(1), htf))
-//
-//    println("Imbalanced Scenario with UnderSampling ---------------------------------------------------")
-//    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithUndersampling(data, dataSplit(1), htf, sc))
-//
-//    println("Balanced Synonymous with Google     ---------------------------------------------------")
-//    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplit(0).union(syntheticGenerationFunctions.similarGenerator(data, htf, word2vecFromGoogleMapper)), dataSplit(1)))
-//
-//    println("Imbalanced Synonymous with Google   ---------------------------------------------------")
-//    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithSimilars(data, dataSplit(1), htf, word2vecFromGoogleMapper))
-//
-//    println("Balanced Synonymous with Dataset    ---------------------------------------------------")
-//    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplit(0).union(syntheticGenerationFunctions.similarGenerator(data, htf, word2vecFromDatasetMapper)), dataSplit(1)))
-//
-//    println("Imbalanced Synonymous with Dataset  ---------------------------------------------------")
-//    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithSimilars(data, dataSplit(1), htf, word2vecFromDatasetMapper))
+    println("Simple Balanced Scenario            ---------------------------------------------------")
+    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplit(0), dataSplit(1)))
+    println("Balanced Scenario with Antonymous   ---------------------------------------------------")
+    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplit(0)
+      .union(syntheticGenerationFunctions.choose_antonymous_generation_function(data, htf, wordnetMapper, 1)), dataSplit(1)))
+
+    println("Simple Imbalanced Scenario          ---------------------------------------------------")
+    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10fold(dataSplit(0), dataSplit(1)))
+
+    println("Imbalanced Scenario with Antonymous No Balance After Generation-----------------------------------")
+    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithAntonyms(data, dataSplit(1), htf, wordnetMapper, antonymous_generation_case))
+
+    println("Imbalanced Scenario with Antonymous with Re-Balance -UNDERSamplingMajorityClass- After Generation-----------------------------------")
+    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithAntonymsAndRebalanceUnderSampling(data, dataSplit(1), htf, wordnetMapper, antonymous_generation_case, sc))
+
+    println("Imbalanced Scenario with Antonymous with Re-Balance -OVERSamplingMajorityClass- After Generation-----------------------------------")
+    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithAntonymsAndRebalanceOverSampling(data, dataSplit(1), htf, wordnetMapper, antonymous_generation_case, sc))
+
+
+
+    //
+    //    println("Imbalanced Scenario with OverSampling ---------------------------------------------------")
+    //    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithOversampling(data, dataSplit(1), htf))
+    //
+    //    println("Imbalanced Scenario with UnderSampling ---------------------------------------------------")
+    //    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithUndersampling(data, dataSplit(1), htf, sc))
+    //
+    //    println("Balanced Synonymous with Google     ---------------------------------------------------")
+    //    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplit(0)
+    // .union(syntheticGenerationFunctions.similarGenerator(data, htf, word2vecFromGoogleMapper)), dataSplit(1)))
+    //
+    //    println("Imbalanced Synonymous with Google   ---------------------------------------------------")
+    //    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithSimilars(data, dataSplit(1), htf, word2vecFromGoogleMapper))
+    //
+    //    println("Balanced Synonymous with Dataset    ---------------------------------------------------")
+    //    callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplit(0)
+    // .union(syntheticGenerationFunctions.similarGenerator(data, htf, word2vecFromDatasetMapper)), dataSplit(1)))
+    //
+    //    println("Imbalanced Synonymous with Dataset  ---------------------------------------------------")
+    //    callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithSimilars(data, dataSplit(1), htf, word2vecFromDatasetMapper))
   }
 
   def main(args: Array[String]) {
@@ -134,6 +149,8 @@ object MultiEvaluation {
     val semEvalData = sc.textFile(args(1))
     val options = args(2).toInt
 
+    val antonymous_select_generation_function = args(3).toInt // 0 to 5
+
     // assign words to numbers converter
     val htf = new HashingTF(1500000)
     val htf_2 = new HashingTF(1500000)
@@ -151,7 +168,7 @@ object MultiEvaluation {
 
         // split dataset for hold out eval
         val dataSplit = dataSet.randomSplit(Array(0.7, 0.3))
-        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplit, data, htf, sc)
+        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplit, data, htf, sc, antonymous_select_generation_function)
 
       case 2 =>
         //-----------------------SemEval----------------------------------
@@ -183,7 +200,7 @@ object MultiEvaluation {
           }
           LabeledPoint(id, htf.transform(parts(2).split(' ')))}.cache()
         val dataSplit = dataSet.randomSplit(Array(0.7, 0.3))
-        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplit, data, htf, sc)
+        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplit, data, htf, sc, antonymous_select_generation_function)
 
         val dataSetSemEval = semEvalData.map { line =>
           val parts = line.split('\t')
