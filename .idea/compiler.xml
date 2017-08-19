@@ -7,10 +7,12 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="ICDM_Antonyms" />
+        <module name="Textual_Pseudo_Augmentation" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="ICDM_Antonyms" target="1.5" />
+      <module name="Textual_Pseudo_Augmentation" target="1.5" />
     </bytecodeTargetLevel>
   </component>
 </project>

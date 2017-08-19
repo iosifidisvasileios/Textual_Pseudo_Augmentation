@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/ICDM_Antonyms.iml" filepath="$PROJECT_DIR$/ICDM_Antonyms.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Textual_Pseudo_Augmentation.iml" filepath="$PROJECT_DIR$/Textual_Pseudo_Augmentation.iml" />
     </modules>
   </component>
 </project>
