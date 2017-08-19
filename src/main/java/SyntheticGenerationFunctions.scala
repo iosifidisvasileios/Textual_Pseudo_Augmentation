@@ -56,7 +56,7 @@ class SyntheticGenerationFunctions {
       val parts = line2.split(",")
       val text = line2.split(",")(2)
       var unigramsSynonymous = ""
-      var one_word_flag = false;
+      var one_word_flag = false
       var similarityFlag = false
       val status = parts(1)
 
@@ -103,7 +103,7 @@ class SyntheticGenerationFunctions {
       val parts = line2.split(",")
       val text = line2.split(",")(2)
       var unigramsSynonymous = ""
-      var one_word_flag = false;
+      var one_word_flag = false
       var similarityFlag = false
       val status = parts(1)
 
@@ -567,8 +567,17 @@ class SyntheticGenerationFunctions {
     val positive_rdd = tempDataset.filter(_.label == 0).cache()
     //    val positive_rdd_count = positive_rdd.count()
 
-    val finalDataset = positive_rdd.union(tempDataset .filter( _.label == 1).++(tempDataset .filter( _.label == 1))
-      .++(tempDataset .filter( _.label == 1)).++(tempDataset .filter( _.label == 1)).++(tempDataset .filter( _.label == 1)))
+    val finalDataset = positive_rdd.union(
+      tempDataset .filter( _.label == 1)
+      .++(tempDataset .filter( _.label == 1))
+      .++(tempDataset .filter( _.label == 1))
+      .++(tempDataset .filter( _.label == 1))
+      .++(tempDataset .filter( _.label == 1))
+      .++(tempDataset .filter( _.label == 1))
+      .++(tempDataset .filter( _.label == 1))
+      .++(tempDataset .filter( _.label == 1))
+      .++(tempDataset .filter( _.label == 1))
+      .++(tempDataset .filter( _.label == 1)))
 
     println("Final Training set: positives after blankout = " + finalDataset.filter(_.label == 0).count())
     println("Final Training set: negatives after blankout = " + finalDataset.filter(_.label == 1).count())
