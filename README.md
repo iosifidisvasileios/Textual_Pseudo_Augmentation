@@ -1,7 +1,9 @@
 # Textual_Pseudo_Augmentation
 
 
-This open source library was created in order to generate textual pseudo instances. It aims at extracting sentences from twitter's data (mostly) which must be stored in a specific way. It can also be used for any other dataset which fullfil the below description of indices.
+This open source library was created in order to generate textual pseudo instances. It aims at extracting sentences from twitter's data (mostly) which must be stored in a specific way. It can also be used for any other dataset which fullfil the below description of indices. 
+
+Pseudo instances are generated in order to handle class imbalance. In this project we create pseudo instances and compare them with simple methods such as under-sampling and over-sampling. As classifier we use Naive Bayes with bag-of-words converter for text (HashingTF in this case). 
 
 The implementation was done in scala for distributed environment: Apache Spark. 
 
