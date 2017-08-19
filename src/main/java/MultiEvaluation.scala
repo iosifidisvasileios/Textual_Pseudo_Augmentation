@@ -307,9 +307,7 @@ object MultiEvaluation {
 
     // read input from HDFS
     val data = sc.textFile(args(0))
-    val semEvalData = sc.textFile(args(1))
-    val tsentiment15Data = sc.textFile(args(2))
-    val options = args(3).toInt
+    val options = args(1).toInt
 
     // assign words to numbers converter
     val htf = new HashingTF(1500000)
@@ -338,10 +336,10 @@ object MultiEvaluation {
       case 2 =>
         //-----------------------SemEval----------------------------------
 
-        val finalsemEvalData = semEvalData.filter{line=>
+        val finalsemEvalData = data.filter{line=>
           val parts = line.split(',')
           parts(1).equals("negative")
-        }.union(sc.parallelize(semEvalData.filter{line=>
+        }.union(sc.parallelize(data.filter{line=>
           val parts = line.split(',')
           parts(1).equals("positive")
         }.take(11427)))
@@ -368,10 +366,10 @@ object MultiEvaluation {
       case 3 =>
         //-----------------------TSentiment15----------------------------------
 
-        val finalTSentiment15 = tsentiment15Data.filter{line=>
+        val finalTSentiment15 = data.filter{line=>
           val parts = line.split(',')
           parts(1).equals("negative")
-        }.union(sc.parallelize(tsentiment15Data.filter{line=>
+        }.union(sc.parallelize(data.filter{line=>
           val parts = line.split(',')
           parts(1).equals("positive")
         }.take(316663)))
