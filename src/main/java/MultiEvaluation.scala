@@ -37,8 +37,7 @@ object MultiEvaluation {
   }
 
   def distant_supervision_evaluation(syntheticGenerationFunctions: SyntheticGenerationFunctions, dataSplit: Array[RDD[LabeledPoint]],
-                                     data: RDD[String], htf: HashingTF, sc: SparkContext, antonymous_generation_case:Int) : Unit = {
-/*
+                                     data: RDD[String], htf: HashingTF, sc: SparkContext) : Unit = {
     //------------------------------------------ Balanced Scenarios ------------------------------------------------------------
     println("Simple Balanced Scenario                                ---------------------------------------------------")
     callBinaryMetricsFunction(syntheticGenerationFunctions.simple10fold(dataSplit(0), dataSplit(1)))
@@ -84,7 +83,6 @@ object MultiEvaluation {
 
     println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation   -----------------------------------")
     callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSampling(data, dataSplit(1), htf, sc))
-*/
 
 
     println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation-----------------------------------")
@@ -96,31 +94,21 @@ object MultiEvaluation {
     println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation   -----------------------------------")
     callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSampling(data, dataSplit(1), htf, sc))
 
-
-
-/*
-
     //------------------------------------------ANTONYMOUS Imbalance----------------------------------------------------
     for(i <- 0 to 5) {
 
       println("Imbalanced Scenario with Antonymous No Balance After Generation         -----------------------------------")
       callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithAntonyms(
         data, dataSplit(1), htf, wordnetMapper, i))
-//        data, dataSplit(1), htf, wordnetMapper, antonymous_generation_case))
 
       println("Imbalanced Scenario with Antonymous with Re-Balance -UNDERSamplingMajorityClass- After Generation----------")
       callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithAntonymsAndRebalanceUnderSampling(
         data, dataSplit(1), htf, wordnetMapper, i, sc))
-//        data, dataSplit(1), htf, wordnetMapper, antonymous_generation_case, sc))
 
       println("Imbalanced Scenario with Antonymous with Re-Balance -OVERSamplingMajorityClass- After Generation-----------")
       callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithAntonymsAndRebalanceOverSampling(
         data, dataSplit(1), htf, wordnetMapper, i, sc))
-//        data, dataSplit(1), htf, wordnetMapper, antonymous_generation_case, sc))
     }
-
-
-
 
     println("Imbalanced Scenario with Antonymous with Perturbation of Majority Class    --------------------------------")
     callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithAntonymsFairPerturbation(
@@ -133,8 +121,6 @@ object MultiEvaluation {
     println("Imbalanced Scenario with Antonymous with Perturbation of Majority Class    --------------------------------")
     callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithAntonymsFairPerturbation(
       data, dataSplit(1), htf, wordnetMapper, 4, sc))
-
-
 
     //-------------------------------------------------------------------------------------------------------------------
     //-------------------------- WORD2VEC NO-SENTIMENT EMBEDDINGS ------------------------------------------------------------
@@ -275,8 +261,6 @@ object MultiEvaluation {
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS WITH OVERSAMPLING Twitter- Sentiment---")
     callBinaryMetricsFunction(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithOverSampling(
       data, dataSplit(1), htf, word2vecFromTwitterSentimentMapper, sc))
-*/
-
 
   }
 
@@ -327,8 +311,6 @@ object MultiEvaluation {
     val tsentiment15Data = sc.textFile(args(2))
     val options = args(3).toInt
 
-    val antonymous_select_generation_function = args(4).toInt // 0 to 5
-
     // assign words to numbers converter
     val htf = new HashingTF(1500000)
     val htf_2 = new HashingTF(1500000)
@@ -351,7 +333,7 @@ object MultiEvaluation {
         //        println("test set positive counts : " + dataSplit(1).filter(_.label == 0 ).count())
         //        println("test set negative counts : " + dataSplit(1).filter(_.label == 1 ).count())
         //        println("-------------------------------------")
-        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplit, data, htf, sc, antonymous_select_generation_function)
+        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplit, data, htf, sc)
 
       case 2 =>
         //-----------------------SemEval----------------------------------
@@ -381,7 +363,7 @@ object MultiEvaluation {
 
         // split dataset for hold out eval
         val dataSplitSemEval = dataSetSemEval.randomSplit(Array(0.7, 0.3))
-        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplitSemEval, finalsemEvalData, htf, sc, antonymous_select_generation_function)
+        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplitSemEval, finalsemEvalData, htf, sc)
 
       case 3 =>
         //-----------------------TSentiment15----------------------------------
@@ -403,7 +385,7 @@ object MultiEvaluation {
           }
           LabeledPoint(id, htf_2.transform(parts(2).split(' ')))}.cache()
         val dataSplitTSentiment15 = dataSetTSentiment15.randomSplit(Array(0.7, 0.3))
-        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplitTSentiment15, finalTSentiment15, htf, sc, antonymous_select_generation_function)
+        distant_supervision_evaluation(syntheticGenerationFunctions, dataSplitTSentiment15, finalTSentiment15, htf, sc)
 
     }
 
