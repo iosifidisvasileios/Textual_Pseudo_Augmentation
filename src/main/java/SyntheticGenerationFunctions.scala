@@ -1,16 +1,61 @@
+import java.util
+
 import org.apache.spark.SparkContext
 import org.apache.spark.mllib.classification.NaiveBayes
 import org.apache.spark.mllib.evaluation.{BinaryClassificationMetrics, MulticlassMetrics}
 import org.apache.spark.mllib.feature.HashingTF
 import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 class SyntheticGenerationFunctions {
 
+  def cross_validation_function(data:RDD[LabeledPoint]): mutable.Map [String, Double] = {
+    val mapper = mutable.Map[String, Double]().withDefaultValue(0)
+
+    println("positives final dataset = " + data.filter(_.label == 0).count)
+    println("negatives final dataset = " + data.filter(_.label == 1).count)
+
+    val output_array = ArrayBuffer[ RDD[ (Double,Double) ]] ()
+
+    val foldedDataSet = MLUtils.kFold(data, 10, System.currentTimeMillis().toInt)
+    foldedDataSet.foreach{item =>
+
+      val model = NaiveBayes.train(item._1)
+      val predictionAndLabels = item._2.map { case LabeledPoint(label, features) =>
+        val prediction = model.predict(features)
+        (prediction, label)
+      }
+      output_array.append(predictionAndLabels)
+    }
+
+    output_array.foreach{ x=>
+      val metrics = new BinaryClassificationMetrics(x)
+      val precision = metrics.precisionByThreshold.collectAsMap()
+      mapper("precision_positive") += (precision.get(0.0).last / 10)
+      mapper("precision_negative") += (precision.get(1.0).last / 10)
+      val recall = metrics.recallByThreshold().collectAsMap()
+
+      mapper("recall_positive") += (recall.get(0.0).last / 10)
+      mapper("recall_negative") += (recall.get(1.0).last / 10)
+
+      val PRC = metrics.pr
+      val f1Score = metrics.fMeasureByThreshold.collectAsMap()
+      mapper("f1_positive") += (f1Score.get(0.0).last / 10)
+      mapper("f1_negative") += (f1Score.get(1.0).last / 10)
+      val auPRC = metrics.areaUnderPR
+      mapper("accuracy") += (auPRC / 10)
+      val auROC = metrics.areaUnderROC
+      mapper("AucRoc") += (auROC / 10)
+    }
+    mapper
+  }
+
   def simple10fold(data: RDD[LabeledPoint], test: RDD[LabeledPoint]): RDD[(Double,Double)] = {
-//    cross_validation_function(data)
+    //    cross_validation_function(data)
     println("Training set: positives before antonym generation = " + data.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + data.filter(_.label == 1).count())
 
@@ -25,27 +70,18 @@ class SyntheticGenerationFunctions {
     predictionAndLabels
   }
 
-  def unbalance10fold(data: RDD[LabeledPoint], test: RDD[LabeledPoint]): RDD[(Double,Double)] = {
+  def unbalance10fold(data: RDD[LabeledPoint]): mutable.Map [String, Double] = {
 
     val negativeTemp = data.filter(x=> x.label.equals(1.0))
     val positiveTemp = data.filter(x=> x.label.equals(0.0))
     val negative = negativeTemp.randomSplit(Array(0.8, 0.2 ))
 
     val dataSet = positiveTemp.union(negative(1)).cache
-//    cross_validation_function(dataSet)
+    //    cross_validation_function(dataSet)
     println("Training set: positives before antonym generation = " + dataSet.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + dataSet.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
-
-    val model = NaiveBayes.train(dataSet)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(dataSet)
   }
 
 
@@ -65,7 +101,7 @@ class SyntheticGenerationFunctions {
           if (mapper.contains(word)){
             similarityFlag = true
             one_word_flag = true
-            println("it is true! " + mapper(word))
+            //            println("it is true! " + mapper(word))
             unigramsSynonymous  += mapper(word) + " "
           }else{
             unigramsSynonymous += word + " "
@@ -90,7 +126,7 @@ class SyntheticGenerationFunctions {
           }
           LabeledPoint(id , htf.transform(parts(1).split(' ')))
       }
-//    println("instances = " + synonymous.count())
+    //    println("instances = " + synonymous.count())
     println("positives generated = " + synonymous.filter(_.label == 0).count())
     println("negatives generated = " + synonymous.filter(_.label == 1).count())
     synonymous
@@ -112,7 +148,7 @@ class SyntheticGenerationFunctions {
           if (mapper.contains(word)){
             similarityFlag = true
             one_word_flag = true
-            println("it is true! " + mapper(word))
+            //            println("it is true! " + mapper(word))
             unigramsSynonymous  += mapper(word) + " "
           }else{
             unigramsSynonymous += word + " "
@@ -137,21 +173,21 @@ class SyntheticGenerationFunctions {
           }
           LabeledPoint(id , htf.transform(parts(1).split(' ')))
       }
-//    println("instances = " + synonymous.count())
-//    println("positives generated = " + synonymous.filter(_.label == 0).count())
-//    println("negatives generated = " + synonymous.filter(_.label == 1).count())
-//    synonymous.filter(_.label == 1)
-//    println("positives generated = " + synonymous.filter(_.label == 0).count())
+    //    println("instances = " + synonymous.count())
+    //    println("positives generated = " + synonymous.filter(_.label == 0).count())
+    //    println("negatives generated = " + synonymous.filter(_.label == 1).count())
+    //    synonymous.filter(_.label == 1)
+    //    println("positives generated = " + synonymous.filter(_.label == 0).count())
     println("negatives generated = " + synonymous.filter(_.label == 1).count())
-        synonymous.filter(_.label == 1)
-//    val output = denoise_synthetic_data(synonymous)
-//    println("positives after denoise = " + output.filter(_.label == 0).count())
-//    println("negatives after denoise = " + output.filter(_.label == 1).count())
-//    output
+    synonymous.filter(_.label == 1)
+    //    val output = denoise_synthetic_data(synonymous)
+    //    println("positives after denoise = " + output.filter(_.label == 0).count())
+    //    println("negatives after denoise = " + output.filter(_.label == 1).count())
+    //    output
   }
 
   def similarGeneratorAllWordsAllClasses(data: RDD[String], htf: HashingTF, mapper : mutable.HashMap[String, String]): RDD[LabeledPoint] = {
-//    println("size of dictionary : " + mapper.size)
+    //    println("size of dictionary : " + mapper.size)
 
     val synonymous = data.map { line =>
       val line2 = line.toLowerCase
@@ -164,7 +200,7 @@ class SyntheticGenerationFunctions {
       for (word <- text.split(" ")){
         if (mapper.contains(word)){
           similarityFlag = true
-          println("it is true! " + mapper(word))
+          //          println("it is true! " + mapper(word))
           unigramsSynonymous  += mapper(word) + " "
         }else{
           unigramsSynonymous += word + " "
@@ -186,10 +222,10 @@ class SyntheticGenerationFunctions {
           }
           LabeledPoint(id , htf.transform(parts(1).split(' ')))
       }
-//    println("instances = " + synonymous.count())
+    //    println("instances = " + synonymous.count())
     println("positives generated = " + synonymous.filter(_.label == 0).count())
     println("negatives generated = " + synonymous.filter(_.label == 1).count())
-//    denoise_synthetic_data(synonymous)
+    //    denoise_synthetic_data(synonymous)
     synonymous
   }
 
@@ -204,7 +240,7 @@ class SyntheticGenerationFunctions {
     })
 
     val mnb_model = NaiveBayes.train(finalDataset)
-     synthetic_data.filter( x=> mnb_model.predict(x.features) == x.label)
+    synthetic_data.filter( x=> mnb_model.predict(x.features) == x.label)
   }
 
   def denoise_synthetic_data(synthetic_data: RDD[LabeledPoint] ): RDD[LabeledPoint] = {
@@ -213,7 +249,7 @@ class SyntheticGenerationFunctions {
   }
 
   def similarGeneratorAllWordsOnlyMinorityClass(data: RDD[String], htf: HashingTF, mapper : mutable.HashMap[String, String]): RDD[LabeledPoint] = {
-//    println("size of dictionary : " + mapper.size)
+    //    println("size of dictionary : " + mapper.size)
 
     val synonymous = data.map { line =>
       val line2 = line.toLowerCase
@@ -226,7 +262,7 @@ class SyntheticGenerationFunctions {
       for (word <- text.split(" ")){
         if (mapper.contains(word)){
           similarityFlag = true
-          println("it is true! " + mapper(word))
+          //          println("it is true! " + mapper(word))
           unigramsSynonymous  += mapper(word) + " "
         }else{
           unigramsSynonymous += word + " "
@@ -248,18 +284,18 @@ class SyntheticGenerationFunctions {
           }
           LabeledPoint(id , htf.transform(parts(1).split(' ')))
       }
-//    println("instances = " + synonymous.count())
-//    println("positives generated = " + synonymous.filter(_.label == 0).count())
+    //    println("instances = " + synonymous.count())
+    //    println("positives generated = " + synonymous.filter(_.label == 0).count())
     println("negatives generated = " + synonymous.filter(_.label == 1).count())
     synonymous.filter(_.label == 1)
-//    val output = denoise_synthetic_data(data, synonymous, htf)
-//    println("positives after denoise = " + output.filter(_.label == 0).count())
-//    println("negatives after denoise = " + output.filter(_.label == 1).count())
-//    output
+    //    val output = denoise_synthetic_data(data, synonymous, htf)
+    //    println("positives after denoise = " + output.filter(_.label == 0).count())
+    //    println("negatives after denoise = " + output.filter(_.label == 1).count())
+    //    output
   }
 
   def similarGeneratorSemEval(data: RDD[String], htf: HashingTF, mapper : mutable.HashMap[String, String]): RDD[LabeledPoint] = {
-//    println("size of dictionary : " + mapper.size)
+    //    println("size of dictionary : " + mapper.size)
 
     val synonymous = data.map { line =>
       //      val line2 = line.toLowerCase
@@ -272,7 +308,7 @@ class SyntheticGenerationFunctions {
       for (word <- text.split(" ")){
         if (mapper.contains(word)){
           similarityFlag = true
-          println("it is true! " + mapper(word))
+          //          println("it is true! " + mapper(word))
           unigramsSynonymous  += mapper(word) + " "
         }else{
           unigramsSynonymous += word + " "
@@ -326,17 +362,41 @@ class SyntheticGenerationFunctions {
 
   }
 
-  def blankout_generator(negatives: RDD[String]): RDD[String] = {
+  def blankout_generator(negatives: RDD[String], k: Int, sentiwordSet: util.HashSet[String]): RDD[String] = {
     val r = new java.util.Random
-    negatives.filter(x => x.split(",")(2).split(" ").length >= 4).map{ line=>
+
+    negatives.filter(x => x.split(",")(2).split(" ").length - k >= 3).map{ line=>
       val parts = line.split(',')
       val number_of_words = parts(2).split(' ').length
       var tempString = ""
-      val random_dropout = r.nextInt(number_of_words)
+      val indexSet = scala.collection.mutable.Set[Int]()
+
+      for( i <- 1 to k ) {
+
+        var random_dropout = r.nextInt(number_of_words)
+        val sentence = parts(2).split(' ')
+
+        while (sentence(random_dropout).startsWith("NOT_") ||
+          sentence(random_dropout).startsWith("not_") ||
+          sentence(random_dropout).startsWith("NOT") ||
+          sentence(random_dropout).equals("dont") ||
+          sentence(random_dropout).equals("havent") ||
+          sentence(random_dropout).equals("cant") ||
+          sentence(random_dropout).equals("cannot") ||
+          sentence(random_dropout).equals("arent") ||
+          sentence(random_dropout).equals("arenot") ||
+          sentence(random_dropout).equals("aint") ||
+          sentence(random_dropout).startsWith("not")||
+          sentiwordSet.contains(sentence(random_dropout))) {
+          random_dropout = r.nextInt(number_of_words)
+        }
+
+        indexSet.add(random_dropout)
+      }
       var counter = 0
 
-      for (word <- parts(2).split(" ")){
-        if (counter != random_dropout){
+      for (word <- parts(2).split(" ")) {
+        if (!indexSet.contains(counter)) {
           tempString += word + " "
         }
         counter += 1
@@ -346,15 +406,15 @@ class SyntheticGenerationFunctions {
 
   }
 
-  def unbalance10foldWithBlankoutOnlyMinority(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF): RDD[(Double,Double)] = {
+  def unbalance10foldWithBlankoutOnlyMinority(rawDataset: RDD[String], htf : HashingTF, k: Int, sentiwordSet:util.HashSet[String]): mutable.Map [String, Double]  = {
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     var positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
     // create imbalance to negative class
     val negative = negativeTemp.randomSplit(Array(0.9, 0.1 ))
 
-//    for( i <- 0 until 10){
-      positiveTemp = positiveTemp.union(blankout_generator(negative(1) )).union(negative(1))
-//    }
+    //    for( i <- 0 until 10){
+    positiveTemp = positiveTemp.union(blankout_generator(negative(1), k, sentiwordSet )).union(negative(1))
+    //    }
     println("positives  generation = " + positiveTemp.filter(x=> x.split(",")(1).equals("positive")).count())
     println("negatives Blankout generation = " + positiveTemp.filter(x=> x.split(",")(1).equals("negative")).count())
 
@@ -369,20 +429,11 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
 
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithBlankoutBothClasses(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF): RDD[(Double,Double)] = {
+  def unbalance10foldWithBlankoutBothClasses(rawDataset: RDD[String], htf : HashingTF, k: Int, sentiwordSet: util.HashSet[String]): mutable.Map [String, Double] = {
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     var positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
     // create imbalance to negative class
@@ -391,9 +442,9 @@ class SyntheticGenerationFunctions {
     println("positives before blankout = " + positiveTemp.count())
     println("negatives before blankout = " + negative(1).count())
 
-    val blankGeneration = positiveTemp.union(blankout_generator(positiveTemp))
-                                      .union(blankout_generator(negative(1) ))
-                                      .union(negative(1))
+    val blankGeneration = positiveTemp.union(blankout_generator(positiveTemp, k, sentiwordSet))
+      .union(blankout_generator(negative(1), k, sentiwordSet))
+      .union(negative(1))
 
     println("positives after blankout = " + blankGeneration.filter(x=> x.split(",")(1).equals("positive")).count())
     println("negatives after blankout = " + blankGeneration.filter(x=> x.split(",")(1).equals("negative")).count())
@@ -406,26 +457,19 @@ class SyntheticGenerationFunctions {
       }
       LabeledPoint(id , htf.transform(parts(2).split(' ')))
     }
-    //    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
 
-  def unbalance10foldWithBlankoutOnlyMinorityWithUnderSampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF, sc:SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithBlankoutOnlyMinorityWithUnderSampling(rawDataset: RDD[String], htf : HashingTF, sc:SparkContext, k: Int, sentiwordSet: util.HashSet[String]): mutable.Map [String, Double] = {
     var negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     var positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
     // create imbalance to negative class
     val negative = negativeTemp.randomSplit(Array(0.9, 0.1 ))
 
-//    for( i <- 0 until 10){
-      positiveTemp = positiveTemp.union(blankout_generator(negative(1) )).union(negative(1))
-//    }
+    //    for( i <- 0 until 10){
+    positiveTemp = positiveTemp.union(blankout_generator(negative(1), k , sentiwordSet)).union(negative(1))
+    //    }
     println("positives  generation = " + positiveTemp.filter(x=> x.split(",")(1).equals("positive")).count())
     println("negatives Blankout generation = " + positiveTemp.filter(x=> x.split(",")(1).equals("negative")).count())
 
@@ -444,17 +488,10 @@ class SyntheticGenerationFunctions {
     println("total instances for pos/neg after generation = " + negative_count)
     val finalDataset = negative_rdd.union(sc.parallelize(tempDataset .filter( _.label == 0).take(negative_count.toInt)))
 
-    //    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithBlankoutBothClassesWithUnderSampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF, sc:SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithBlankoutBothClassesWithUnderSampling(rawDataset: RDD[String], htf : HashingTF, sc:SparkContext, k: Int, sentiwordSet: util.HashSet[String]): mutable.Map [String, Double] = {
     var negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     var positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
     // create imbalance to negative class
@@ -463,8 +500,8 @@ class SyntheticGenerationFunctions {
     println("positives before blankout = " + positiveTemp.count())
     println("negatives before blankout = " + negative(1).count())
 
-    val blankGeneration = positiveTemp.union(blankout_generator(positiveTemp))
-      .union(blankout_generator(negative(1) ))
+    val blankGeneration = positiveTemp.union(blankout_generator(positiveTemp, k, sentiwordSet))
+      .union(blankout_generator(negative(1), k, sentiwordSet ))
       .union(negative(1))
 
     println("positives after blankout = " + blankGeneration.filter(x=> x.split(",")(1).equals("positive")).count())
@@ -486,26 +523,19 @@ class SyntheticGenerationFunctions {
     println("total instances for pos/neg after generation = " + negative_count)
     val finalDataset = negative_rdd.union(sc.parallelize(tempDataset .filter( _.label == 0).take(negative_count.toInt)))
 
-    //    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
 
-  def unbalance10foldWithBlankoutOnlyMinorityWithOverSampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF, sc:SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithBlankoutOnlyMinorityWithOverSampling(rawDataset: RDD[String], htf : HashingTF, sc:SparkContext, k: Int, sentiwordSet: util.HashSet[String]): mutable.Map [String, Double]  = {
     var negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     var positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
     // create imbalance to negative class
     val negative = negativeTemp.randomSplit(Array(0.9, 0.1 ))
 
-//    for( i <- 0 until 10){
-      positiveTemp = positiveTemp.union(blankout_generator(negative(1) )).union(negative(1))
-//    }
+    //    for( i <- 0 until 10){
+    positiveTemp = positiveTemp.union(blankout_generator(negative(1), k, sentiwordSet )).union(negative(1))
+    //    }
     println("positives  generation = " + positiveTemp.filter(x=> x.split(",")(1).equals("positive")).count())
     println("negatives Blankout generation = " + positiveTemp.filter(x=> x.split(",")(1).equals("negative")).count())
 
@@ -519,7 +549,7 @@ class SyntheticGenerationFunctions {
     }
 
     val positive_rdd = tempDataset .filter(_.label == 0).cache()
-//    val positive_rdd_count = positive_rdd.count()
+    //    val positive_rdd_count = positive_rdd.count()
 
     val finalDataset = positive_rdd.union(tempDataset .filter( _.label == 1).++(tempDataset .filter( _.label == 1))
       .++(tempDataset .filter( _.label == 1)).++(tempDataset .filter( _.label == 1)).++(tempDataset .filter( _.label == 1)))
@@ -527,17 +557,11 @@ class SyntheticGenerationFunctions {
     println("Training set: positives after blankout = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives after blankout = " + finalDataset.filter(_.label == 1).count())
 
-    //    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
+    cross_validation_function(finalDataset)
 
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
   }
 
-  def unbalance10foldWithBlankoutBothClassesWithOverSampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF, sc:SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithBlankoutBothClassesWithOverSampling(rawDataset: RDD[String], htf : HashingTF, sc:SparkContext, k: Int, sentiwordSet: util.HashSet[String]): mutable.Map [String, Double]  = {
     var negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     var positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
     // create imbalance to negative class
@@ -547,8 +571,8 @@ class SyntheticGenerationFunctions {
     println("positives before blankout = " + positiveTemp.count())
     println("negatives before blankout = " + negative(1).count())
 
-    val blankGeneration = positiveTemp.union(blankout_generator(positiveTemp))
-      .union(blankout_generator(negative(1) ))
+    val blankGeneration = positiveTemp.union(blankout_generator(positiveTemp, k, sentiwordSet))
+      .union(blankout_generator(negative(1), k , sentiwordSet))
       .union(negative(1))
 
     println("positives after blankout = " + blankGeneration.filter(x=> x.split(",")(1).equals("positive")).count())
@@ -569,33 +593,26 @@ class SyntheticGenerationFunctions {
 
     val finalDataset = positive_rdd.union(
       tempDataset .filter( _.label == 1)
-      .++(tempDataset .filter( _.label == 1))
-      .++(tempDataset .filter( _.label == 1))
-      .++(tempDataset .filter( _.label == 1))
-      .++(tempDataset .filter( _.label == 1))
-      .++(tempDataset .filter( _.label == 1))
-      .++(tempDataset .filter( _.label == 1))
-      .++(tempDataset .filter( _.label == 1))
-      .++(tempDataset .filter( _.label == 1))
-      .++(tempDataset .filter( _.label == 1)))
+        .++(tempDataset .filter( _.label == 1))
+        .++(tempDataset .filter( _.label == 1))
+        .++(tempDataset .filter( _.label == 1))
+        .++(tempDataset .filter( _.label == 1))
+        .++(tempDataset .filter( _.label == 1))
+        .++(tempDataset .filter( _.label == 1))
+        .++(tempDataset .filter( _.label == 1))
+        .++(tempDataset .filter( _.label == 1))
+        .++(tempDataset .filter( _.label == 1)))
 
     println("Final Training set: positives after blankout = " + finalDataset.filter(_.label == 0).count())
     println("Final Training set: negatives after blankout = " + finalDataset.filter(_.label == 1).count())
 
-    //    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
 
-  def balanced10foldWithBlankout(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF): RDD[(Double,Double)] = {
+  def balanced10foldWithBlankout(rawDataset: RDD[String], htf : HashingTF, k: Int, sentiwordSet: util.HashSet[String]): mutable.Map [String, Double] = {
 
-    val tempset = blankout_generator(rawDataset)
+    val tempset = blankout_generator(rawDataset, k, sentiwordSet)
 
     println("positives Blankout generation = " + tempset.filter(x=> x.split(",")(1).equals("positive")).count())
     println("negatives Blankout generation = " + tempset.filter(x=> x.split(",")(1).equals("negative")).count())
@@ -609,27 +626,17 @@ class SyntheticGenerationFunctions {
       LabeledPoint(id , htf.transform(parts(2).split(' ')))
     }
 
-//    cross_validation_function(finalDataset)
+    //    cross_validation_function(finalDataset)
 
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
+    cross_validation_function(finalDataset)
 
-
-
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
   }
 
-  def unbalance10foldWithAntonyms(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                  wordnetMapper:mutable.HashMap[String,String], antonymous_case: Int): RDD[(Double,Double)] = {
+  def unbalance10foldWithAntonyms(rawDataset: RDD[String], htf : HashingTF,
+                                  wordnetMapper:mutable.HashMap[String,String], antonymous_case: Int): mutable.Map [String, Double] = {
     // filter to rdds
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -659,55 +666,14 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
 
+    cross_validation_function(finalDataset)
 
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
   }
 
-//  def cross_validation_function(data:RDD[LabeledPoint]): Unit = {
-//    println("positives final dataset = " + data.filter(_.label == 0).count)
-//    println("negatives final dataset = " + data.filter(_.label == 1).count)
-//    val foldedDataSet = MLUtils.kFold(data, 5, System.currentTimeMillis().toInt)
-//    val result = foldedDataSet.map { case (trainingSet, testingSet) =>
-//      val model = NaiveBayes.train(trainingSet, lambda = 1.0, modelType = "multinomial")
-//
-//      testingSet.map { t =>
-//        val predicted = model.predict(t.features)
-//
-//        (predicted, t.label) match {
-//          case (0.0, 0.0) => "TP"
-//          case (0.0, 1.0) => "FP"
-//          case (1.0, 1.0) => "TN"
-//          case (1.0, 0.0) => "FN"
-//        }
-//      }.countByValue()
-//    }
-//    val truePositiveCount = result.map(_ ("TP")).sum.toDouble
-//    val trueNegativeCount = result.map(_ ("TN")).sum.toDouble
-//    val falsePositiveCount = result.map(_ ("FP")).sum.toDouble
-//    val falseNegativeCount = result.map(_ ("FN")).sum.toDouble
-//    val accuracy = (truePositiveCount + trueNegativeCount) / ( truePositiveCount + trueNegativeCount + falsePositiveCount + falseNegativeCount )
-//    println("*******************************************")
-//    println("10 fold cross validation average accuracy: " + accuracy)
-//    println("truePositiveCount  : " +  truePositiveCount )
-//    println("trueNegativeCount  : " +  trueNegativeCount )
-//    println("falsePositiveCount : " + falsePositiveCount )
-//    println("falseNegativeCount : " + falseNegativeCount )
-//    println("*******************************************")
-//
-//  }
 
-  def unbalance10foldWithAntonymsAndRebalanceUnderSampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                           wordnetMapper:mutable.HashMap[String,String], antonymous_case: Int, sc:SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithAntonymsAndRebalanceUnderSampling(rawDataset: RDD[String],  htf : HashingTF,
+                                                           wordnetMapper:mutable.HashMap[String,String], antonymous_case: Int, sc:SparkContext): mutable.Map [String, Double] = {
     // filter to rdds
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -741,18 +707,11 @@ class SyntheticGenerationFunctions {
     println("total instances for pos/neg after antonym generation = " + negative_count)
     val finalDataset = negative_rdd.union(sc.parallelize(finalDatasetImbalanced.filter( _.label == 0).take(negative_count.toInt)))
 
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithAntonymsAndRebalanceOverSampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                          wordnetMapper:mutable.HashMap[String,String], antonymous_case: Int, sc:SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithAntonymsAndRebalanceOverSampling(rawDataset: RDD[String], htf : HashingTF,
+                                                          wordnetMapper:mutable.HashMap[String,String], antonymous_case: Int, sc:SparkContext): mutable.Map [String, Double]  = {
     // filter to rdds
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -787,20 +746,11 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithAntonymsFairPerturbation(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                  wordnetMapper:mutable.HashMap[String,String], antonymous_case: Int, sc:SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithAntonymsFairPerturbation(rawDataset: RDD[String], htf : HashingTF,
+                                                  wordnetMapper:mutable.HashMap[String,String], antonymous_case: Int, sc:SparkContext): mutable.Map [String, Double] = {
     // filter to rdds
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -849,14 +799,7 @@ class SyntheticGenerationFunctions {
     println("total positives final dataset antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("total negatives final dataset antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
   def unbalance10foldWithAntonymsSemEval(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
@@ -886,8 +829,8 @@ class SyntheticGenerationFunctions {
   }
 
 
-  def unbalance10foldWithSimilarsAllWordsAllClasses(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                    mapper: mutable.HashMap[String, String]): RDD[(Double,Double)] = {
+  def unbalance10foldWithSimilarsAllWordsAllClasses(rawDataset: RDD[String], htf : HashingTF,
+                                                    mapper: mutable.HashMap[String, String]): mutable.Map [String, Double] = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -907,21 +850,11 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
-
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithSimilarsAllWordsOnlyMinorityClass(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                    mapper: mutable.HashMap[String, String]): RDD[(Double,Double)] = {
+  def unbalance10foldWithSimilarsAllWordsOnlyMinorityClass(rawDataset: RDD[String], htf : HashingTF,
+                                                           mapper: mutable.HashMap[String, String]): mutable.Map [String, Double] = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -941,22 +874,12 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
 
-
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithUnderSampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                    mapper: mutable.HashMap[String, String], sc: SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithUnderSampling(rawDataset: RDD[String],  htf : HashingTF,
+                                                                                     mapper: mutable.HashMap[String, String], sc: SparkContext): mutable.Map [String, Double]  = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -981,22 +904,11 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
-
-
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithOverSampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                    mapper: mutable.HashMap[String, String], sc: SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithOverSampling(rawDataset: RDD[String], htf : HashingTF,
+                                                                                    mapper: mutable.HashMap[String, String], sc: SparkContext): mutable.Map [String, Double] = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -1022,22 +934,11 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
-
-
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithSimilarsOnlyOneWordAllClasses(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                       mapper: mutable.HashMap[String, String]): RDD[(Double,Double)] = {
+  def unbalance10foldWithSimilarsOnlyOneWordAllClasses(rawDataset: RDD[String], htf : HashingTF,
+                                                       mapper: mutable.HashMap[String, String]): mutable.Map [String, Double] = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -1057,21 +958,12 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
 
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClass(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                              mapper: mutable.HashMap[String, String]): RDD[(Double,Double)] = {
+  def unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClass(rawDataset: RDD[String],  htf : HashingTF,
+                                                              mapper: mutable.HashMap[String, String]): mutable.Map [String, Double] = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -1091,21 +983,12 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
 
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
-  def unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithUnderSampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF,
-                                                              mapper: mutable.HashMap[String, String], sc:SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithUnderSampling(rawDataset: RDD[String],  htf : HashingTF,
+                                                                                        mapper: mutable.HashMap[String, String], sc:SparkContext): mutable.Map [String, Double]  = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -1128,25 +1011,15 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
 
+    cross_validation_function(finalDataset)
 
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
   }
 
   def unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithOverSampling(rawDataset: RDD[String],
-                                                                                       test: RDD[LabeledPoint],
                                                                                        htf : HashingTF,
                                                                                        mapper: mutable.HashMap[String, String],
-                                                                                       sc:SparkContext): RDD[(Double,Double)] = {
+                                                                                       sc:SparkContext): mutable.Map [String, Double]  = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -1171,18 +1044,8 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
 
-
-//    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
 
@@ -1265,8 +1128,8 @@ class SyntheticGenerationFunctions {
           }
           LabeledPoint(id , htf.transform(parts(1).split(' ')))
       }
-//    println("antonyms generated = " + antonyms.count())
-//    println("positives antonym generated = " + antonyms.filter(_.label == 0).count())
+    //    println("antonyms generated = " + antonyms.count())
+    //    println("positives antonym generated = " + antonyms.filter(_.label == 0).count())
     println("negatives antonym generated = " + antonyms.filter(_.label == 1).count())
 
     antonyms.filter(_.label == 1)
@@ -1322,11 +1185,11 @@ class SyntheticGenerationFunctions {
           }
           LabeledPoint(id , htf.transform(parts(1).split(' ')))
       }
-//    println("antonyms generated = " + antonyms.count())
+    //    println("antonyms generated = " + antonyms.count())
     println("positives antonym generated = " + antonyms.filter(_.label == 0).count())
     println("negatives antonym generated = " + antonyms.filter(_.label == 1).count())
     denoise_synthetic_data(antonyms)
-//    antonyms
+    //    antonyms
   }
 
   def antonymsGeneratorNegationsAndWordsBothClasses(data: RDD[String], htf: HashingTF,
@@ -1371,7 +1234,7 @@ class SyntheticGenerationFunctions {
           }
           LabeledPoint(id , htf.transform(parts(1).split(' ')))
       }
-//    println("antonyms generated = " + antonyms.count())
+    //    println("antonyms generated = " + antonyms.count())
     println("positives antonym generated = " + antonyms.filter(_.label == 0).count())
     println("negatives antonym generated = " + antonyms.filter(_.label == 1).count())
     antonyms
@@ -1420,7 +1283,7 @@ class SyntheticGenerationFunctions {
           }
           LabeledPoint(id , htf.transform(parts(1).split(' ')))
       }
-//    println("positives antonym generated = " + antonyms.filter(_.label == 0).count())
+    //    println("positives antonym generated = " + antonyms.filter(_.label == 0).count())
     println("negatives antonym generated = " + antonyms.filter(_.label == 1).count())
     antonyms.filter(_.label == 1)
   }
@@ -1484,7 +1347,7 @@ class SyntheticGenerationFunctions {
           }
           LabeledPoint(id , htf.transform(parts(1).split(' ')))
       }
-//    println("positives antonym generated = " + antonyms.filter(_.label == 0).count())
+    //    println("positives antonym generated = " + antonyms.filter(_.label == 0).count())
     println("negatives antonym generated = " + antonyms.filter(_.label == 1).count())
     antonyms.filter(_.label == 1)
   }
@@ -1683,7 +1546,7 @@ class SyntheticGenerationFunctions {
     println(s"Weighted false positive rate: ${metrics.weightedFalsePositiveRate}")
   }
 
-  def unbalance10foldWithOversampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF): RDD[(Double,Double)] = {
+  def unbalance10foldWithOversampling(rawDataset: RDD[String], htf : HashingTF): mutable.Map [String, Double]  = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -1706,18 +1569,8 @@ class SyntheticGenerationFunctions {
 
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
+    cross_validation_function(finalDataset)
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
-
-    //    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
   }
 
 
@@ -1748,7 +1601,7 @@ class SyntheticGenerationFunctions {
     predictionAndLabels
   }
 
-  def unbalance10foldWithUndersampling(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF, sc: SparkContext): RDD[(Double,Double)] = {
+  def unbalance10foldWithUndersampling(rawDataset: RDD[String], htf : HashingTF, sc: SparkContext): mutable.Map [String, Double] = {
 
     val negativeTemp = rawDataset.filter(x=> x.split(",")(1).equals("negative"))
     val positiveTemp = rawDataset.filter(x=> x.split(",")(1).equals("positive"))
@@ -1772,18 +1625,8 @@ class SyntheticGenerationFunctions {
     println("Training set: positives before antonym generation = " + finalDataset.filter(_.label == 0).count())
     println("Training set: negatives before antonym generation = " + finalDataset.filter(_.label == 1).count())
 
-    println("Testing set: positives before antonym generation = " + test.filter(_.label == 0).count())
-    println("Testing set: negatives before antonym generation = " + test.filter(_.label == 1).count())
 
-
-    //    cross_validation_function(finalDataset)
-    val model = NaiveBayes.train(finalDataset)
-
-    val predictionAndLabels = test.map { case LabeledPoint(label, features) =>
-      val prediction = model.predict(features)
-      (prediction, label)
-    }
-    predictionAndLabels
+    cross_validation_function(finalDataset)
   }
 
   def unbalance10foldWithUndersamplingSemEval(rawDataset: RDD[String], test: RDD[LabeledPoint], htf : HashingTF, sc: SparkContext): RDD[(Double,Double)] = {
@@ -1813,6 +1656,4 @@ class SyntheticGenerationFunctions {
     }
     predictionAndLabels
   }
-
-
 }
