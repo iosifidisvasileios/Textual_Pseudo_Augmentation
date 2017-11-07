@@ -39,173 +39,192 @@ object MultiEvaluation {
   }
 
   def print_results(test_map: mutable.Map[String, Double]) = {
-    println("precision_negative:: " + test_map("precision_negative"))
-    println("precision_positive:: " + test_map("precision_positive"))
+    //    println("precision_negative: " + test_map("precision_negative"))
+    //    println("precision_positive: " + test_map("precision_positive"))
 
-    println("recall_positive:: " + test_map("recall_positive"))
-    println("recall_negative:: " + test_map("recall_negative"))
-    println("f1_positive:: " + test_map("f1_positive"))
-    println("f1_negative:: " + test_map("f1_negative"))
+    //    println("recall_positive: " + test_map("recall_positive"))
+    //    println("recall_negative: " + test_map("recall_negative"))
 
-    println("accuracy:: " + test_map("accuracy"))
-    println("AucRoc:: " + test_map("AucRoc"))
+    println(test_map("f1_positive"))
+    println(test_map("f1_negative"))
+
+    println(test_map("accuracy"))
+    println(test_map("AucRoc"))
+    //println("f1_positive: " + test_map("f1_positive"))
+    //    println("f1_negative: " + test_map("f1_negative"))
+    //
+    //    println("accuracy: " + test_map("accuracy"))
+    //    println("AucRoc: " + test_map("AucRoc"))
 
   }
 
   def distant_supervision_evaluation(syntheticGenerationFunctions: SyntheticGenerationFunctions, dataSplit: RDD[LabeledPoint],
-                                     data: RDD[String], htf: HashingTF, sc: SparkContext, k: Int, sentiwordSet: util.HashSet[String]) : Unit = {
+                                     data_positive: RDD[String], data_negative: RDD[String], htf: HashingTF, sc: SparkContext,
+                                     k: Int, sentiwordSet: util.HashSet[String], only_for_original_tests: RDD[String]) : Unit = {
+
+    println("Positives : " + data_positive.count())
+    println("Negatives : " + data_negative.count())
+
+
     //    //        ------------------------------------------ Balanced Scenarios ------------------------------------------------------------
-    //    println("Simple Balanced Scenario                                ---------------------------------------------------")
-    //    print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit))
+    println("Simple Balanced Scenario                                ---------------------------------------------------")
+    print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit))
     //
-    //    for(i <- 0 to 5) {
-    //      println("Balanced Scenario with Antonymous Scenario = " + i + "  -------------------------------------------------")
-    //      print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit.union(syntheticGenerationFunctions
-    //        .choose_antonymous_generation_function(data, htf, wordnetMapper, i))))
-    //
-    //    }
-    //
-    //
-    //    println("Balanced Synonymous with Google                         ---------------------------------------------------")
-    //    print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit.union(syntheticGenerationFunctions.similarGeneratorAllWordsAllClasses(data, htf, word2vecFromGoogleMapper))))
+    for(i <- 0 to 5) {
+      println("Balanced Scenario with Antonymous Scenario = " + i + "  -------------------------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit.union(syntheticGenerationFunctions
+        .choose_antonymous_generation_function(only_for_original_tests, htf, wordnetMapper, i))))
+    }
+
     //
     //
-    //    println("Balanced Synonymous with WORD2VEC Google Sentiment      ---------------------------------------------------")
-    //    print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit.union(syntheticGenerationFunctions
-    //      .similarGeneratorAllWordsAllClasses(data, htf, word2vecFromGoogleSentimentMapper))))
+    println("Balanced Synonymous with Google                         ---------------------------------------------------")
+    print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit.union(syntheticGenerationFunctions.similarGeneratorAllWordsAllClasses(
+      only_for_original_tests, htf, word2vecFromGoogleMapper))))
     //
-    //    println("Balanced Synonymous with WORD2VEC Twitter Sentiment     ---------------------------------------------------")
-    //    print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit.union(syntheticGenerationFunctions
-    //      .similarGeneratorAllWordsAllClasses(data, htf, word2vecFromTwitterSentimentMapper))))
+
+    println("Balanced Synonymous with Twitter               ---------------------------------------------------")
+    print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit.union(syntheticGenerationFunctions
+      .similarGeneratorAllWordsAllClasses(only_for_original_tests, htf, word2vecFromTwitterMapper))))
+
+    println("Balanced Synonymous with WORD2VEC Google Sentiment      ---------------------------------------------------")
+    print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit.union(syntheticGenerationFunctions
+      .similarGeneratorAllWordsAllClasses(only_for_original_tests, htf, word2vecFromGoogleSentimentMapper))))
+
+    println("Balanced Synonymous with WORD2VEC Twitter Sentiment     ---------------------------------------------------")
+    print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit.union(syntheticGenerationFunctions
+      .similarGeneratorAllWordsAllClasses(only_for_original_tests, htf, word2vecFromTwitterSentimentMapper))))
 
 
     println("Balanced Scenario with BLANKOUT                         ---------------------------------------------------")
-    print_results(syntheticGenerationFunctions.balanced10foldWithBlankout(data,  htf , k, sentiwordSet))
+    print_results(syntheticGenerationFunctions.balanced10foldWithBlankout(only_for_original_tests,  htf , k, sentiwordSet))
 
+    sys.exit(1)
     //    ---------------------------------------------- Imbalance & Over/under-Sampling -----------------------------------
     //
-    //    println("Simple Imbalanced Scenario          ---------------------------------------------------")
-    //    print_results(syntheticGenerationFunctions.unbalance10fold(dataSplit))
-    //
-    //    println("Imbalanced Scenario with OverSampling ---------------------------------------------------")
-    //    print_results(syntheticGenerationFunctions.unbalance10foldWithOversampling(data, htf))
-    //
-    //    println("Imbalanced Scenario with UnderSampling ---------------------------------------------------")
-    //    print_results(syntheticGenerationFunctions.unbalance10foldWithUndersampling(data, htf, sc))
+    println("Simple Imbalanced Scenario          ---------------------------------------------------")
+    print_results(syntheticGenerationFunctions.imbalance10fold(data_positive, data_negative, htf))
 
+    println("Imbalanced Scenario with OverSampling ---------------------------------------------------")
+    print_results(syntheticGenerationFunctions.unbalance10foldWithOversampling(data_positive, data_negative, htf))
+    //
+    println("Imbalanced Scenario with UnderSampling ---------------------------------------------------")
+    print_results(syntheticGenerationFunctions.unbalance10foldWithUndersampling(data_positive, data_negative, htf, sc))
+
+    sys.exit(1)
 
     //    ------------------------------------------BLANKOUT Imbalance----------------------------------------------------
     println("Imbalanced Scenario with BLANKOUT ONLY MINORITY No Balance After Generation-----------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinority(data, htf, k, sentiwordSet))
+    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinority(data_positive, data_negative, htf, k, sentiwordSet))
 
     println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Undersampling After Generation   -----------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSampling(data, htf, sc, k, sentiwordSet))
-
+    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSampling(data_positive, data_negative, htf, sc, k, sentiwordSet))
+    //
     println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation   -----------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSampling(data, htf, sc, k, sentiwordSet))
-
-
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation-----------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClasses(data, htf, k, sentiwordSet))
-
+    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSampling(data_positive, data_negative, htf, sc, k, sentiwordSet))
+    //
+    //
+    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation  -----------------------------------")
+    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClasses(data_positive, data_negative, htf, k, sentiwordSet))
+    //
     println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Undersampling After Generation   -----------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSampling(data, htf, sc, k, sentiwordSet))
-
+    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSampling(data_positive, data_negative, htf, sc, k, sentiwordSet))
+    //
     println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation   -----------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSampling(data, htf, sc, k, sentiwordSet))
+    print_results(syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSampling(data_positive, data_negative, htf, sc, k, sentiwordSet))
 
+    sys.exit(0)
 
-    sys.exit(1)
     //    ------------------------------------------ANTONYMOUS Imbalance----------------------------------------------------
     for(i <- 0 to 5) {
 
       println("Imbalanced Scenario with Antonymous No Balance After Generation         -----------------------------------")
-      print_results(syntheticGenerationFunctions.unbalance10foldWithAntonyms(data, htf, wordnetMapper, i))
+      print_results(syntheticGenerationFunctions.unbalance10foldWithAntonyms(data_positive, data_negative, htf, wordnetMapper, i))
 
       println("Imbalanced Scenario with Antonymous with Re-Balance -UNDERSamplingMajorityClass- After Generation----------")
-      print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsAndRebalanceUnderSampling(data, htf, wordnetMapper, i, sc))
+      print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsAndRebalanceUnderSampling(data_positive, data_negative, htf, wordnetMapper, i, sc))
 
       println("Imbalanced Scenario with Antonymous with Re-Balance -OVERSamplingMajorityClass- After Generation-----------")
-      print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsAndRebalanceOverSampling(data, htf, wordnetMapper, i, sc))
+      print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsAndRebalanceOverSampling(data_positive, data_negative, htf, wordnetMapper, i, sc))
     }
 
+    println("Imbalanced Scenario with Antonymous with Perturbation of Majority Class    --------------------------------")
+    print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsFairPerturbation(data_positive, data_negative, htf, wordnetMapper, 0, sc))
 
     println("Imbalanced Scenario with Antonymous with Perturbation of Majority Class    --------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsFairPerturbation(data, htf, wordnetMapper, 0, sc))
+    print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsFairPerturbation(data_positive, data_negative, htf, wordnetMapper, 2, sc))
 
     println("Imbalanced Scenario with Antonymous with Perturbation of Majority Class    --------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsFairPerturbation(data, htf, wordnetMapper, 2, sc))
+    print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsFairPerturbation(data_positive, data_negative, htf, wordnetMapper, 4, sc))
 
-    println("Imbalanced Scenario with Antonymous with Perturbation of Majority Class    --------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithAntonymsFairPerturbation(data, htf, wordnetMapper, 4, sc))
 
     //    -------------------------------------------------------------------------------------------------------------------
     //    -------------------------- WORD2VEC NO-SENTIMENT EMBEDDINGS ------------------------------------------------------------
     //    ----------------------------------------------------- GOOGLE NO-SENTIMENT EMBEDDINGS  ------------------------------------------
 
     println("Imbalanced Synonymous with Google ALL Words ALL CLASSES  --------------------------------------------------")
-    print_results (syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsAllClasses(data, htf, word2vecFromGoogleMapper))
+    print_results (syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsAllClasses(data_positive, data_negative, htf, word2vecFromGoogleMapper))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ALL CLASSES -----------------------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordAllClasses(data, htf, word2vecFromGoogleMapper))
+    print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordAllClasses(data_positive, data_negative, htf, word2vecFromGoogleMapper))
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS  ------------------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClass(data, htf, word2vecFromGoogleMapper))
+    print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClass(data_positive, data_negative, htf, word2vecFromGoogleMapper))
 
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS  --------------------------------------")
-    print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClass(data, htf, word2vecFromGoogleMapper))
+    print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClass(data_positive, data_negative, htf, word2vecFromGoogleMapper))
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS WITH UNDERSAMPLING  -----------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithUnderSampling(
-      data, htf, word2vecFromGoogleMapper,sc))
+      data_positive, data_negative, htf, word2vecFromGoogleMapper,sc))
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS WITH OVERSAMPLING  ------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithOverSampling(
-      data, htf, word2vecFromGoogleMapper,sc))
+      data_positive, data_negative, htf, word2vecFromGoogleMapper,sc))
 
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS WITH UNDERSAMPLING --------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithUnderSampling(
-      data, htf, word2vecFromGoogleMapper, sc))
+      data_positive, data_negative, htf, word2vecFromGoogleMapper, sc))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS WITH OVERSAMPLING ---------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithOverSampling(
-      data,  htf, word2vecFromGoogleMapper, sc))
+      data_positive, data_negative,  htf, word2vecFromGoogleMapper, sc))
 
     //----------------------------------------------------- TWITTER NO-SENTIMENT EMBEDDINGS  ------------------------------------------
 
     println("Imbalanced Synonymous with Twitter ALL Words ALL CLASSES  --------------------------------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsAllClasses(
-      data, htf, word2vecFromTwitterMapper))
+      data_positive, data_negative, htf, word2vecFromTwitterMapper))
 
     println("Imbalanced Synonymous with Twitter ONLY ONE Word ALL CLASSES -----------------------------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordAllClasses(
-      data, htf, word2vecFromTwitterMapper))
+      data_positive, data_negative, htf, word2vecFromTwitterMapper))
 
     println("Imbalanced Synonymous with Twitter ALL Words ONLY MINORITY CLASS  ------------------------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClass(
-      data, htf, word2vecFromTwitterMapper))
+      data_positive, data_negative, htf, word2vecFromTwitterMapper))
 
     println("Imbalanced Synonymous with Twitter ONLY ONE Word ONLY MINORITY CLASS  --------------------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClass(
-      data, htf, word2vecFromTwitterMapper))
+      data_positive, data_negative, htf, word2vecFromTwitterMapper))
 
     println("Imbalanced Synonymous with Twitter ALL Words ONLY MINORITY CLASS WITH UNDERSAMPLING  -----------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithUnderSampling(
-      data, htf, word2vecFromTwitterMapper,sc))
+      data_positive, data_negative, htf, word2vecFromTwitterMapper,sc))
 
     println("Imbalanced Synonymous with Twitter ALL Words ONLY MINORITY CLASS WITH OVERSAMPLING  ------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithOverSampling(
-      data, htf, word2vecFromTwitterMapper,sc))
+      data_positive, data_negative, htf, word2vecFromTwitterMapper,sc))
 
     println("Imbalanced Synonymous with Twitter ONLY ONE Word ONLY MINORITY CLASS WITH UNDERSAMPLING --------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithUnderSampling(
-      data, htf, word2vecFromTwitterMapper, sc))
+      data_positive, data_negative, htf, word2vecFromTwitterMapper, sc))
 
     println("Imbalanced Synonymous with Twitter ONLY ONE Word ONLY MINORITY CLASS WITH OVERSAMPLING ---------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithOverSampling(
-      data, htf, word2vecFromTwitterMapper, sc))
+      data_positive, data_negative, htf, word2vecFromTwitterMapper, sc))
 
     //-------------------------------------------------------------------------------------------------------------------
     //------------------------ WORD2VEC SENTIMENT EMBEDDINGS  ------------------------------------------------------------
@@ -213,70 +232,69 @@ object MultiEvaluation {
 
     println("Imbalanced Synonymous with Google ALL Words ALL CLASSES Google- Sentiment----------------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsAllClasses(
-      data, htf, word2vecFromGoogleSentimentMapper))
+      data_positive, data_negative, htf, word2vecFromGoogleSentimentMapper))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ALL CLASSES Google- Sentiment------------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordAllClasses(
-      data, htf, word2vecFromGoogleSentimentMapper))
+      data_positive, data_negative, htf, word2vecFromGoogleSentimentMapper))
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS Google- Sentiment -------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClass(
-      data,htf, word2vecFromGoogleSentimentMapper))
+      data_positive, data_negative,htf, word2vecFromGoogleSentimentMapper))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS  Google- Sentiment --------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClass(
-      data, htf, word2vecFromGoogleSentimentMapper))
+      data_positive, data_negative, htf, word2vecFromGoogleSentimentMapper))
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS WITH UNDERSAMPLING  Google- Sentiment -----")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithUnderSampling(
-      data, htf, word2vecFromGoogleSentimentMapper,sc))
+      data_positive, data_negative, htf, word2vecFromGoogleSentimentMapper,sc))
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS WITH OVERSAMPLING   Google- Sentiment -----")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithOverSampling(
-      data,htf, word2vecFromGoogleSentimentMapper,sc))
+      data_positive, data_negative,htf, word2vecFromGoogleSentimentMapper,sc))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS WITH UNDERSAMPLING  Google- Sentiment -")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithUnderSampling(
-      data,htf, word2vecFromGoogleSentimentMapper, sc))
+      data_positive, data_negative,htf, word2vecFromGoogleSentimentMapper, sc))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS WITH OVERSAMPLING  Google- Sentiment --")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithOverSampling(
-      data, htf, word2vecFromGoogleSentimentMapper, sc))
+      data_positive, data_negative, htf, word2vecFromGoogleSentimentMapper, sc))
 
     //----------------------------------------------------- TWITTER SENTIMENT EMBEDDINGS  ------------------------------------------
 
     println("Imbalanced Synonymous with Google ALL Words ALL CLASSES Twitter- Sentiment---------------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsAllClasses(
-      data, htf, word2vecFromTwitterSentimentMapper))
+      data_positive, data_negative, htf, word2vecFromTwitterSentimentMapper))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ALL CLASSES Twitter- Sentiment-----------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordAllClasses(
-      data, htf, word2vecFromTwitterSentimentMapper))
+      data_positive, data_negative, htf, word2vecFromTwitterSentimentMapper))
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS  Twitter- Sentiment------------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClass(
-      data, htf, word2vecFromTwitterSentimentMapper))
+      data_positive, data_negative, htf, word2vecFromTwitterSentimentMapper))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS  Twitter- Sentiment--------------------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClass(
-      data, htf, word2vecFromTwitterSentimentMapper))
+      data_positive, data_negative, htf, word2vecFromTwitterSentimentMapper))
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS WITH UNDERSAMPLING  Twitter- Sentiment-----")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithUnderSampling(
-      data, htf, word2vecFromTwitterSentimentMapper,sc))
+      data_positive, data_negative, htf, word2vecFromTwitterSentimentMapper,sc))
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS WITH OVERSAMPLING  Twitter- Sentiment------")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsOnlyMinorityClassRebalanceWithOverSampling(
-      data, htf, word2vecFromTwitterSentimentMapper,sc))
+      data_positive, data_negative, htf, word2vecFromTwitterSentimentMapper,sc))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS WITH UNDERSAMPLING Twitter- Sentiment--")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithUnderSampling(
-      data, htf, word2vecFromTwitterSentimentMapper, sc))
+      data_positive, data_negative, htf, word2vecFromTwitterSentimentMapper, sc))
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS WITH OVERSAMPLING Twitter- Sentiment---")
     print_results(syntheticGenerationFunctions.unbalance10foldWithSimilarsOnlyOneWordOnlyMinorityClassRebalanceWithOverSampling(
-      data, htf, word2vecFromTwitterSentimentMapper, sc))
-
+      data_positive, data_negative, htf, word2vecFromTwitterSentimentMapper, sc))
 
   }
 
@@ -340,9 +358,12 @@ object MultiEvaluation {
           if (parts(1).equals("positive")) {
             id = 0.0
           }
-          LabeledPoint(id, htf.transform(parts(2).toLowerCase().split(' ')))}.cache()
+          LabeledPoint(id, htf.transform(parts(2).split(' ')))}.cache()
 
-        distant_supervision_evaluation(syntheticGenerationFunctions, dataSet, data, htf, sc, blaknout_k_number, sentiwordSet)
+        distant_supervision_evaluation(syntheticGenerationFunctions, dataSet,
+          data.filter(x => x.split(",")(1).equals("positive")),
+          data.filter(x => x.split(",")(1).equals("negative")).randomSplit(Array(0.8, 0.2))(1),
+          htf, sc, blaknout_k_number, sentiwordSet, data)
 
       case 2 =>
         //-----------------------SemEval----------------------------------
@@ -364,7 +385,7 @@ object MultiEvaluation {
           }
 
 
-          LabeledPoint(id, htf.transform(parts(2).toLowerCase().split(' ')))
+          LabeledPoint(id, htf.transform(parts(2).split(' ')))
         }.cache()
         //0 for positive 1 for negative
         //        println("positive: " + dataSetSemEval.filter(_.label == 0.0).count)
@@ -374,28 +395,27 @@ object MultiEvaluation {
         //        val temp_balanced = dataSetSemEval.filter(_.label == 1.0).union(sc.parallelize(dataSetSemEval.filter(_.label == 0.0).take(11427)))
 
         // split dataset for hold out eval
-        distant_supervision_evaluation(syntheticGenerationFunctions, dataSetSemEval, finalsemEvalData, htf, sc, blaknout_k_number, sentiwordSet)
+
+        distant_supervision_evaluation(syntheticGenerationFunctions, dataSetSemEval,
+          finalsemEvalData.filter(x => x.split(",")(1).equals("positive")),
+          finalsemEvalData.filter(x => x.split(",")(1).equals("negative")).randomSplit(Array(0.8, 0.2))(1),
+          htf, sc, blaknout_k_number, sentiwordSet, data)
 
       case 3 =>
         //-----------------------TSentiment15----------------------------------
 
-        val finalTSentiment15 = data.filter{line=>
-          val parts = line.split(',')
-          parts(1).equals("negative")
-        }.union(sc.parallelize(data.filter{line=>
-          val parts = line.split(',')
-          parts(1).equals("positive")
-        }.take(316663)))
-
-        // load dataset to RDD
-        val dataSetTSentiment15 = finalTSentiment15.map { line =>
+        val dataSet = data.map { line =>
           val parts = line.split(',')
           var id = 1.0
           if (parts(1).equals("positive")) {
             id = 0.0
           }
-          LabeledPoint(id, htf.transform(parts(2).toLowerCase().split(' ')))}.cache()
-        distant_supervision_evaluation(syntheticGenerationFunctions, dataSetTSentiment15, finalTSentiment15, htf, sc, blaknout_k_number, sentiwordSet)
+          LabeledPoint(id, htf.transform(parts(2).split(' ')))}.cache()
+
+        distant_supervision_evaluation(syntheticGenerationFunctions, dataSet,
+          data.filter(x => x.split(",")(1).equals("positive")),
+          data.filter(x => x.split(",")(1).equals("negative")),
+          htf, sc, blaknout_k_number, sentiwordSet, data)
 
     }
 
