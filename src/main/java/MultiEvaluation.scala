@@ -57,7 +57,7 @@ object MultiEvaluation {
     //    println("AucRoc: " + test_map("AucRoc"))
 
   }
-
+/*
 
   def distant_supervision_evaluation_SVM(syntheticGenerationFunctions: SyntheticGenerationFunctions, dataSplit: RDD[LabeledPoint],
                                          data_positive: RDD[String], data_negative: RDD[String], htf: HashingTF, sc: SparkContext,
@@ -134,7 +134,8 @@ object MultiEvaluation {
       syntheticGenerationFunctions.unbalance10foldWithOversampling(
         data_positive,
         data_negative,
-        htf),
+        htf,
+        sc),
       original_evaluation_set)
     )
     println("Imbalanced Scenario with UnderSampling ---------------------------------------------------")
@@ -764,15 +765,17 @@ object MultiEvaluation {
       original_evaluation_set)
     )
 
-  }
+  }*/
 
   def distant_supervision_evaluation_naive_bayes_fair_evaluation(syntheticGenerationFunctions: SyntheticGenerationFunctions, dataSplit: RDD[LabeledPoint],
                                                                  data_positive: RDD[String], data_negative: RDD[String], htf: HashingTF, sc: SparkContext,
-                                                                 k: Int, sentiwordSet: util.HashSet[String], only_for_original_tests: RDD[String]) : Unit = {
+                                                                 k: Int, sentiwordSet: util.HashSet[String], only_for_original_tests: RDD[String],
+                                                                 percentage: Double) : Unit = {
     val original_evaluation_set = MLUtils.kFold(dataSplit, 10, System.currentTimeMillis().toInt)
     println("Positives : " + data_positive.count())
     println("Negatives : " + data_negative.count())
 
+/*
     println("Simple Balanced Scenario                                ---------------------------------------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(dataSplit, original_evaluation_set))
 
@@ -829,69 +832,73 @@ object MultiEvaluation {
 
     println("Imbalanced Scenario with OverSampling ---------------------------------------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithOversampling(data_positive, data_negative, htf),original_evaluation_set))
+      syntheticGenerationFunctions.unbalance10foldWithOversampling(data_positive, data_negative, htf, sc),original_evaluation_set))
 
     println("Imbalanced Scenario with UnderSampling ---------------------------------------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
       syntheticGenerationFunctions.unbalance10foldWithUndersampling(data_positive, data_negative, htf, sc),original_evaluation_set))
+*/
+
+/*
+    for (number<- 2 to 5) {
+      println("THIS IS THE NUMBER FOR THIS ITERATION ~~~~~> " + number)
+      //        ------------------------------------------BLANKOUT Imbalance----------------------------------------------------
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY No Balance After Generation filtered -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinority(data_positive, data_negative, htf, number, sentiwordSet, original_evaluation_set), original_evaluation_set))
+
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Undersampling After Generation filtered   -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSampling(data_positive, data_negative, htf, sc, number, sentiwordSet), original_evaluation_set))
+
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation filtered   -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSampling(data_positive, data_negative, htf, sc, number, sentiwordSet), original_evaluation_set))
 
 
-    //        ------------------------------------------BLANKOUT Imbalance----------------------------------------------------
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY No Balance After Generation filtered -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinority(data_positive, data_negative, htf, k, sentiwordSet,original_evaluation_set),original_evaluation_set))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation filtered  -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClasses(data_positive, data_negative, htf, number, sentiwordSet), original_evaluation_set))
 
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Undersampling After Generation filtered   -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSampling(data_positive, data_negative, htf, sc, k, sentiwordSet),original_evaluation_set))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Undersampling After Generation filtered   -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSampling(data_positive, data_negative, htf, sc, number, sentiwordSet), original_evaluation_set))
 
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation filtered   -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSampling(data_positive, data_negative, htf, sc, k, sentiwordSet),original_evaluation_set))
-
-
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation filtered  -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClasses(data_positive, data_negative, htf, k, sentiwordSet),original_evaluation_set))
-
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Undersampling After Generation filtered   -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSampling(data_positive, data_negative, htf, sc, k, sentiwordSet),original_evaluation_set))
-
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation  filtered  -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSampling(data_positive, data_negative, htf, sc, k, sentiwordSet),original_evaluation_set))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation  filtered  -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSampling(data_positive, data_negative, htf, sc, number, sentiwordSet), original_evaluation_set))
 
 
+      //        ------------------------------------------BLANKOUT Imbalance NO FILTER FAIR EVALUATION----------------------------------------------------
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY No Balance After Generation No filter - !!!-----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityNoFilter(data_positive, data_negative, htf, number, original_evaluation_set), original_evaluation_set))
 
-    //        ------------------------------------------BLANKOUT Imbalance NO FILTER FAIR EVALUATION----------------------------------------------------
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY No Balance After Generation No filter - !!!-----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityNoFilter(data_positive, data_negative, htf, k, original_evaluation_set),original_evaluation_set))
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Undersampling After Generation No filter!!!  -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSamplingNoFilter(data_positive, data_negative, htf, sc, number), original_evaluation_set))
 
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Undersampling After Generation No filter!!!  -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSamplingNoFilter(data_positive, data_negative, htf, sc, k),original_evaluation_set))
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation No filter!!!  -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSamplingNoFilter(data_positive, data_negative, htf, sc, number), original_evaluation_set))
 
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation No filter!!!  -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSamplingNoFilter(data_positive, data_negative, htf, sc, k),original_evaluation_set))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation No filter!!! -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesNoFilter(data_positive, data_negative, htf, number), original_evaluation_set))
 
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation No filter!!! -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesNoFilter(data_positive, data_negative, htf, k),original_evaluation_set))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Undersampling After Generation No filter!!!  -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSamplingNoFilter(data_positive, data_negative, htf, sc, number), original_evaluation_set))
 
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Undersampling After Generation No filter!!!  -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSamplingNoFilter(data_positive, data_negative, htf, sc, k),original_evaluation_set))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation No filter!!!  -----------------------------------")
+      print_results(syntheticGenerationFunctions.cross_validation_function(
+        syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSamplingNoFilter(data_positive, data_negative, htf, sc, number), original_evaluation_set))
 
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation No filter!!!  -----------------------------------")
-    print_results(syntheticGenerationFunctions.cross_validation_function(
-      syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSamplingNoFilter(data_positive, data_negative, htf, sc, k),original_evaluation_set))
-
+    }
+*/
 
     //    ------------------------------------------ANTONYMOUS Imbalance----------------------------------------------------
-    for(i <- 0 to 5) {
+   /* for(i <- 0 to 5) {
 
       println("Imbalanced Scenario with Antonymous No Balance After Generation         -----------------------------------")
       print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -922,19 +929,21 @@ object MultiEvaluation {
       print_results(syntheticGenerationFunctions.cross_validation_function(
         syntheticGenerationFunctions.unbalance10foldWithAntonymsAndRebalanceOverSamplingFiltered(data_positive, data_negative, htf, wordnetMapper, sentiwordSet,i, sc),original_evaluation_set))
     }
-
+*/
 
     //    -------------------------------------------------------------------------------------------------------------------
     //    -------------------------- WORD2VEC NO-SENTIMENT EMBEDDINGS ------------------------------------------------------------
     //    ----------------------------------------------------- GOOGLE NO-SENTIMENT EMBEDDINGS  ------------------------------------------
 
-    println("Imbalanced Synonymous with Google ALL Words ALL CLASSES  --------------------------------------------------")
+   println("Imbalanced Synonymous with Google ALL Words ALL CLASSES  --------------------------------------------------")
     print_results (syntheticGenerationFunctions.cross_validation_function(
       syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsAllClasses(data_positive,
         data_negative,
         htf,
         word2vecFromGoogleMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -944,7 +953,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromGoogleMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -954,7 +965,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromGoogleMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -964,7 +977,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromGoogleMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -976,7 +991,8 @@ object MultiEvaluation {
         htf,
         word2vecFromGoogleMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
 
@@ -988,7 +1004,8 @@ object MultiEvaluation {
         htf,
         word2vecFromGoogleMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1000,7 +1017,8 @@ object MultiEvaluation {
         htf,
         word2vecFromGoogleMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1012,7 +1030,8 @@ object MultiEvaluation {
         htf,
         word2vecFromGoogleMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1025,9 +1044,12 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromTwitterMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Twitter ONLY ONE Word ALL CLASSES -----------------------------------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1036,9 +1058,12 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromTwitterMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Twitter ALL Words ONLY MINORITY CLASS  ------------------------------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1047,9 +1072,12 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromTwitterMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Twitter ONLY ONE Word ONLY MINORITY CLASS  --------------------------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1058,9 +1086,12 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromTwitterMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Twitter ALL Words ONLY MINORITY CLASS WITH UNDERSAMPLING  -----------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1070,9 +1101,11 @@ object MultiEvaluation {
         htf,
         word2vecFromTwitterMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Twitter ALL Words ONLY MINORITY CLASS WITH OVERSAMPLING  ------------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1082,9 +1115,11 @@ object MultiEvaluation {
         htf,
         word2vecFromTwitterMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Twitter ONLY ONE Word ONLY MINORITY CLASS WITH UNDERSAMPLING --------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1094,9 +1129,11 @@ object MultiEvaluation {
         htf,
         word2vecFromTwitterMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Twitter ONLY ONE Word ONLY MINORITY CLASS WITH OVERSAMPLING ---------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1106,14 +1143,15 @@ object MultiEvaluation {
         htf,
         word2vecFromTwitterMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
+
 
     //-------------------------------------------------------------------------------------------------------------------
     //------------------------ WORD2VEC SENTIMENT EMBEDDINGS  ------------------------------------------------------------
     //----------------------------------------------------- GOOGLE EMBEDDINGS  ------------------------------------------
-
     println("Imbalanced Synonymous with Google ALL Words ALL CLASSES Google- Sentiment----------------------------------")
     print_results(syntheticGenerationFunctions.cross_validation_function(
       syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsAllClasses(
@@ -1121,7 +1159,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromGoogleSentimentMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1133,7 +1173,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromGoogleSentimentMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1144,7 +1186,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromGoogleSentimentMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1155,7 +1199,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromGoogleSentimentMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1167,9 +1213,11 @@ object MultiEvaluation {
         htf,
         word2vecFromGoogleSentimentMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Google ALL Words ONLY MINORITY CLASS WITH OVERSAMPLING   Google- Sentiment -----")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1179,9 +1227,11 @@ object MultiEvaluation {
         htf,
         word2vecFromGoogleSentimentMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS WITH UNDERSAMPLING  Google- Sentiment -")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1191,9 +1241,11 @@ object MultiEvaluation {
         htf,
         word2vecFromGoogleSentimentMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
+
 
     println("Imbalanced Synonymous with Google ONLY ONE Word ONLY MINORITY CLASS WITH OVERSAMPLING  Google- Sentiment --")
     print_results(syntheticGenerationFunctions.cross_validation_function(
@@ -1203,9 +1255,11 @@ object MultiEvaluation {
         htf,
         word2vecFromGoogleSentimentMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
+
 
     //----------------------------------------------------- TWITTER SENTIMENT EMBEDDINGS  ------------------------------------------
 
@@ -1216,7 +1270,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromTwitterSentimentMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1227,7 +1283,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromTwitterSentimentMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1238,7 +1296,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromTwitterSentimentMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1249,7 +1309,9 @@ object MultiEvaluation {
         data_negative,
         htf,
         word2vecFromTwitterSentimentMapper,
-        sentiwordSet),
+        sentiwordSet,
+        sc,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1261,7 +1323,8 @@ object MultiEvaluation {
         htf,
         word2vecFromTwitterSentimentMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1273,7 +1336,8 @@ object MultiEvaluation {
         htf,
         word2vecFromTwitterSentimentMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1285,7 +1349,8 @@ object MultiEvaluation {
         htf,
         word2vecFromTwitterSentimentMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1297,7 +1362,8 @@ object MultiEvaluation {
         htf,
         word2vecFromTwitterSentimentMapper,
         sc,
-        sentiwordSet),
+        sentiwordSet,
+        percentage),
       original_evaluation_set)
     )
 
@@ -1315,6 +1381,7 @@ object MultiEvaluation {
     println("Positives : " + data_positive.count())
     println("Negatives : " + data_negative.count())
 
+/*
 
     //        ------------------------------------------ Balanced Scenarios ------------------------------------------------------------
     println("Simple Balanced Scenario                                ---------------------------------------------------")
@@ -1377,7 +1444,7 @@ object MultiEvaluation {
     print_results(syntheticGenerationFunctions.cross_validation_function(temp , MLUtils.kFold(temp, 10, System.currentTimeMillis().toInt)))
 
     println("Imbalanced Scenario with OverSampling ---------------------------------------------------")
-    temp =syntheticGenerationFunctions.unbalance10foldWithOversampling(data_positive, data_negative, htf)
+    temp =syntheticGenerationFunctions.unbalance10foldWithOversampling(data_positive, data_negative, htf, sc)
     print_results(syntheticGenerationFunctions.cross_validation_function(temp , MLUtils.kFold(temp, 10, System.currentTimeMillis().toInt)))
 
     println("Imbalanced Scenario with UnderSampling ---------------------------------------------------")
@@ -1385,65 +1452,68 @@ object MultiEvaluation {
     print_results(syntheticGenerationFunctions.cross_validation_function(temp , MLUtils.kFold(temp, 10, System.currentTimeMillis().toInt)))
 
 
+*/
+    for (number<- 2 to 5) {
+      println("THIS IS THE NUMBER FOR THIS ITERATION ~~~~~> " + number )
 
-    //        ------------------------------------------BLANKOUT Imbalance FILTER ----------------------------------------------------
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY No Balance After Generation filtered - !!!-----------------------------------")
-    var blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinority(data_positive, data_negative, htf, k, sentiwordSet,original_evaluation_set)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      //        ------------------------------------------BLANKOUT Imbalance FILTER ----------------------------------------------------
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY No Balance After Generation filtered - !!!-----------------------------------")
+      var blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinority(data_positive, data_negative, htf, number, sentiwordSet, original_evaluation_set)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Undersampling After Generation filtered!!!  -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSampling(data_positive, data_negative, htf, sc, k, sentiwordSet)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Undersampling After Generation filtered!!!  -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSampling(data_positive, data_negative, htf, sc, number, sentiwordSet)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation filtered!!!  -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSampling(data_positive, data_negative, htf, sc, k, sentiwordSet)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation filtered!!!  -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSampling(data_positive, data_negative, htf, sc, number, sentiwordSet)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation filtered!!! -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClasses(data_positive, data_negative, htf, k, sentiwordSet)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation filtered!!! -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClasses(data_positive, data_negative, htf, number, sentiwordSet)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Undersampling After Generation filtered!!!  -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSampling(data_positive, data_negative, htf, sc, k, sentiwordSet)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Undersampling After Generation filtered!!!  -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSampling(data_positive, data_negative, htf, sc, number, sentiwordSet)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation filtered!!!  -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSampling(data_positive, data_negative, htf, sc, k, sentiwordSet)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation filtered!!!  -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSampling(data_positive, data_negative, htf, sc, number, sentiwordSet)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
 
+      //        ------------------------------------------BLANKOUT Imbalance NO FILTER ----------------------------------------------------
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY No Balance After Generation No filter - !!!-----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityNoFilter(data_positive, data_negative, htf, number, original_evaluation_set)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    //        ------------------------------------------BLANKOUT Imbalance NO FILTER ----------------------------------------------------
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY No Balance After Generation No filter - !!!-----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityNoFilter(data_positive, data_negative, htf, k, original_evaluation_set)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Undersampling After Generation No filter!!!  -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSamplingNoFilter(data_positive, data_negative, htf, sc, number)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Undersampling After Generation No filter!!!  -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithUnderSamplingNoFilter(data_positive, data_negative, htf, sc, k)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation No filter!!!  -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSamplingNoFilter(data_positive, data_negative, htf, sc, number)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    println("Imbalanced Scenario with BLANKOUT ONLY MINORITY with Oversampling After Generation No filter!!!  -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutOnlyMinorityWithOverSamplingNoFilter(data_positive, data_negative, htf, sc, k)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation No filter!!! -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesNoFilter(data_positive, data_negative, htf, number)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES No Balance After Generation No filter!!! -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesNoFilter(data_positive, data_negative, htf, k)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Undersampling After Generation No filter!!!  -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSamplingNoFilter(data_positive, data_negative, htf, sc, number)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
 
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Undersampling After Generation No filter!!!  -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithUnderSamplingNoFilter(data_positive, data_negative, htf, sc, k)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
-
-    println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation No filter!!!  -----------------------------------")
-    blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSamplingNoFilter(data_positive, data_negative, htf, sc, k)
-    print_results(syntheticGenerationFunctions.cross_validation_function(blank_set ,MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt) ))
-
+      println("Imbalanced Scenario with BLANKOUT BOTH CLASSES with Oversampling After Generation No filter!!!  -----------------------------------")
+      blank_set = syntheticGenerationFunctions.unbalance10foldWithBlankoutBothClassesWithOverSamplingNoFilter(data_positive, data_negative, htf, sc, number)
+      print_results(syntheticGenerationFunctions.cross_validation_function(blank_set, MLUtils.kFold(blank_set, 10, System.currentTimeMillis().toInt)))
+    }
+/*
 
     //    ------------------------------------------ANTONYMOUS Imbalance----------------------------------------------------
     for(i <- 0 to 5) {
 
       println("Imbalanced Scenario with Antonymous No Balance After Generation         -----------------------------------")
-      temp = syntheticGenerationFunctions.unbalance10foldWithAntonyms(data_positive, data_negative, htf, wordnetMapper, i)
+      var temp = syntheticGenerationFunctions.unbalance10foldWithAntonyms(data_positive, data_negative, htf, wordnetMapper, i)
       print_results(syntheticGenerationFunctions.cross_validation_function(temp, MLUtils.kFold(temp, 10, System.currentTimeMillis().toInt) ))
 
       println("Imbalanced Scenario with Antonymous with Re-Balance -UNDERSamplingMajorityClass- After Generation----------")
@@ -1460,7 +1530,7 @@ object MultiEvaluation {
     for(i <- 0 to 5) {
 
       println("Imbalanced Scenario with Antonymous No Balance After Generation Filtered (using sentiwordnet as well)        -----------------------------------")
-      temp = syntheticGenerationFunctions.unbalance10foldWithAntonymsFiltered(data_positive, data_negative, htf, wordnetMapper, sentiwordSet, i)
+      var temp = syntheticGenerationFunctions.unbalance10foldWithAntonymsFiltered(data_positive, data_negative, htf, wordnetMapper, sentiwordSet, i)
       print_results(syntheticGenerationFunctions.cross_validation_function(temp, MLUtils.kFold(temp, 10, System.currentTimeMillis().toInt) ))
 
 
@@ -1474,6 +1544,7 @@ object MultiEvaluation {
 
     }
 
+*/
 
     /*
         println("Imbalanced Scenario with Antonymous with Perturbation of Majority Class    --------------------------------")
@@ -1494,8 +1565,10 @@ object MultiEvaluation {
     //    -------------------------- WORD2VEC NO-SENTIMENT EMBEDDINGS ------------------------------------------------------------
     //    ----------------------------------------------------- GOOGLE NO-SENTIMENT EMBEDDINGS  ------------------------------------------
 
+    /*
+
     println("Imbalanced Synonymous with Google ALL Words ALL CLASSES  --------------------------------------------------")
-    temp = syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsAllClasses(data_positive,
+    var temp = syntheticGenerationFunctions.unbalance10foldWithSimilarsAllWordsAllClasses(data_positive,
       data_negative,
       htf,
       word2vecFromGoogleMapper,
@@ -1801,6 +1874,7 @@ object MultiEvaluation {
     print_results(syntheticGenerationFunctions.cross_validation_function(temp, MLUtils.kFold(temp, 10, System.currentTimeMillis().toInt) ))
 
 
+*/
 
   }
 
@@ -1851,6 +1925,7 @@ object MultiEvaluation {
     val data = sc.textFile(args(0))
     val options = args(1).toInt
     val blaknout_k_number = args(2).toInt
+    val percentage = args(3).toDouble
     // assign words to numbers converter
     val htf = new HashingTF(1500000)
 
@@ -1873,13 +1948,13 @@ object MultiEvaluation {
         distant_supervision_evaluation_naive_bayes_fair_evaluation(syntheticGenerationFunctions, dataSet,
           positive,
           negative,
-          htf, sc, blaknout_k_number, sentiwordSet, data)
+          htf, sc, blaknout_k_number, sentiwordSet, data,percentage)
 
-        println("\n\n\n ---------------BIASED Evaluation !!! -------------------------- \n\n\n")
+/*        println("\n\n\n ---------------BIASED Evaluation !!! -------------------------- \n\n\n")
         distant_supervision_evaluation_naive_bayes_bias_evaluation(syntheticGenerationFunctions, dataSet,
           positive,
           negative,
-          htf, sc, blaknout_k_number, sentiwordSet, data)
+          htf, sc, blaknout_k_number, sentiwordSet, data)*/
 
       case 2 =>
         // -----------------------SemEval----------------------------------
@@ -1910,13 +1985,15 @@ object MultiEvaluation {
         distant_supervision_evaluation_naive_bayes_fair_evaluation(syntheticGenerationFunctions, dataSetSemEval,
           positive,
           negative,
-          htf, sc, blaknout_k_number, sentiwordSet, finalsemEvalData)
+          htf, sc, blaknout_k_number, sentiwordSet, finalsemEvalData,percentage)
 
+/*
         println("\n\n\n ---------------BIASED Evaluation !!! -------------------------- \n\n\n")
         distant_supervision_evaluation_naive_bayes_bias_evaluation(syntheticGenerationFunctions, dataSetSemEval,
           positive,
           negative,
           htf, sc, blaknout_k_number, sentiwordSet, finalsemEvalData)
+*/
 
       case 3 =>
         // -----------------------TSentiment15----------------------------------
@@ -1933,13 +2010,13 @@ object MultiEvaluation {
         distant_supervision_evaluation_naive_bayes_fair_evaluation(syntheticGenerationFunctions, dataSet,
           data.filter(x => x.split(",")(1).equals("positive")),
           data.filter(x => x.split(",")(1).equals("negative")),
-          htf, sc, blaknout_k_number, sentiwordSet, data)
+          htf, sc, blaknout_k_number, sentiwordSet, data,percentage)
 
-        println("\n\n\n ---------------BIASED Evaluation !!! -------------------------- \n\n\n")
+/*        println("\n\n\n ---------------BIASED Evaluation !!! -------------------------- \n\n\n")
         distant_supervision_evaluation_naive_bayes_bias_evaluation(syntheticGenerationFunctions, dataSet,
           data.filter(x => x.split(",")(1).equals("positive")),
           data.filter(x => x.split(",")(1).equals("negative")),
-          htf, sc, blaknout_k_number, sentiwordSet, data)
+          htf, sc, blaknout_k_number, sentiwordSet, data)*/
 
     }
 
